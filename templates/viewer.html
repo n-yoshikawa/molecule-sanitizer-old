@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+    <title>Molecule sanitizer</title>
+  </head>
+<style>
+svg {
+  width: 100%;
+}
+</style>
+  <body>
+    <div id="app" class="container-fluid vh-100">
+      <div class="row">
+        <div class="col-4 col-md-3 col-lg-2 vh-100 pt-3 border-end overflow-auto">
+          <input type="radio" v-model="radio_value" id="ss_all" value="all" v-on:change="onChange">
+          <label for="ss_all">Show all molecules</label>
+          {% if is_ready %}
+          <h2 class="h4 mt-3 mx-2">Frequent substructures</h2>
+          <ul class="list-unstyled text-center">
+            {% for substructure in substructures %}
+            <li>
+                <figure>
+                  <input type="radio" v-model="radio_value" id="ss{{ substructure['ID'] }}" value="{{ substructure['ID'] }}" v-on:change="onChange">
+                  <label for="ss{{ substructure['ID'] }}">{{ substructure['SVG'] | safe }}</label>
+                  <figcaption class="w-100 text-truncate">{{ substructure['SMILES'] }}</figcaption>
+                </figure>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="mt-3">Substructure analysis is not ready. Please wait a while and refresh later.</p>
+          {% endif %}
+        </div>
+        <div class="col-8 col-md-9 col-lg-10 vh-100 px-0">
+          <div class="h-75 overflow-auto container-fluid">
+            <h1 class="h2 mt-4">Molecule Sanitizer</h2>
+            <span v-if="!exists" class="mt-4">The input data is busy or does not exist. Please reload.</span>
+            <span v-else>
+              <span v-if="loading">Loading...</span>
+              <span v-else>Please choose a substructure from the left column</span>
+            </span>
+            <div class="row container-fluid" v-if="!loading">
+              <div class="col-12 col-md-6 col-lg-4 border" v-for="molecule in molecules" :key="molecule.smiles">
+                <div>
+                  <input type="checkbox" v-model="checked_molecules" :value="molecule.smiles" :id="molecule.name">
+                </div>
+                <div class="text-center">
+                  <label :for="molecule.name"><span v-html="molecule.svg_html"></span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="h-25 overflow-auto border-top border-dark container-fluid">
+            <h2 class="h5">Chosen molecules</h2>
+            <span v-for="smiles in checked_molecules">
+              <code>[[ smiles ]]</code><br>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.js" integrity="sha512-otOZr2EcknK9a5aa3BbMR9XOjYKtxxscwyRHN6zmdXuRfJ5uApkHB7cz1laWk2g8RKLzV9qv/fl3RPwfCuoxHQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+  <script>
+    var app = new Vue({
+      el: '#app',
+      delimiters: ["[[", "]]"],
+      data: {
+        radio_value: 'all',
+        exists: true,
+        loading: false,
+        ready: false,
+        molecules: [],
+        checked_molecules: []
+      },
+      mounted: function() {
+        var vm = this;
+        vm.loading = true;
+        vm.ready = false;
+        axios.post('/select', {"ID": "all", "list_id": "{{ list_id }}"})
+          .then(function(response) {
+            if( response.status === 200 ){
+              ajax_data = JSON.parse(response.data.values);
+              vm.molecules = ajax_data.molecules;
+              vm.exists = ajax_data.exists;
+            }
+            vm.loading = false;
+            vm.ready = true;
+          })
+      },
+      methods: {
+        onChange(event) {
+          var vm = this;
+          vm.loading = true;
+          vm.ready = false;
+          vm.checked_molecules = [];
+          $('input[type="checkbox"]').each(function(){
+            $(this).prop('checked', false);
+          });
+          axios.post('/select', {"ID": vm.radio_value, "list_id": "{{ list_id }}"})
+            .then(function(response) {
+              if( response.status === 200 ){
+                ajax_data = JSON.parse(response.data.values);
+                vm.molecules = ajax_data.molecules;
+                vm.exists = ajax_data.exists;
+              }
+              vm.loading = false;
+              vm.ready = true;
+            })
+        }
+      }
+    });
+  </script>
+  </body>
+</html>

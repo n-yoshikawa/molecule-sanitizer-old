@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+    <title>Molecule sanitizer</title>
+  </head>
+  <body>
+    <div id="app" class="container vh-100">
+      <h1 class="h2 mt-4">Molecule Sanitizer</h2>
+      <form @submit.prevent="submitList">
+      <label for="smiles_list" class="form-label">Enter SMILES list (1 SMILES per line)</label>
+      <textarea class="form-control" id="smiles_list" v-model="smiles_list" rows="25" placeholder="CC(C)(C)c1ccc2occ(CC(=O)Nc3ccccc3F)c2c1&#13;C[C@@H]1CC(Nc2cncc(-c3nncn3C)c2)C[C@@H](C)C1"></textarea>
+      <button type="submit" class="btn btn-primary mt-3">Submit</button>
+      </form>
+    </div>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.js" integrity="sha512-otOZr2EcknK9a5aa3BbMR9XOjYKtxxscwyRHN6zmdXuRfJ5uApkHB7cz1laWk2g8RKLzV9qv/fl3RPwfCuoxHQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+  <script>
+    var app = new Vue({
+      el: '#app',
+      delimiters: ["[[", "]]"],
+      data: {
+        smiles_list: "",
+      },
+      methods: {
+        submitList(e) {
+          var vm = this;
+          axios.post('/send', {"smiles_list": vm.smiles_list})
+            .then(function(response) {
+              if( response.status === 200 ){
+                ajax_data = JSON.parse(response.data.values);
+                  setTimeout(function(){
+                      window.location.href = ajax_data.url;
+                  },1000);
+                }
+              vm.loading = false;
+              vm.ready = true;
+            });
+          e.preventDefault();
+        }
+      }
+    });
+  </script>
+  </body>
+</html>
