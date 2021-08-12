@@ -24,10 +24,9 @@ def index():
 
 @app.route('/viewer/<list_id>')
 def viewer(list_id):
-    print(list_id)
     lst = []
     if not os.path.isfile(f'{list_id}.sub'):
-        return render_template("viewer.html", is_ready=False, list_id=list_id, substructures=[])
+        return render_template("viewer.html", is_ready=False, list_id=list_id)
     with open(f'{list_id}.sub') as f:
         for line in f:
             ID,description,nodes,edges,s_abs,s_rel,c_abs,c_rel = line.split(',')
@@ -119,7 +118,6 @@ def select():
 @app.route('/send', methods=['POST'])
 def send():
     data = request.get_json()
-    print(data['smiles_list'])
     list_id = uuid.uuid4().hex
     with open(f'{list_id}.smi', 'w') as f:
         f.write(data['smiles_list'])
@@ -130,13 +128,16 @@ def send():
 def analyze_ss(list_id):
     smis = []
     with open(f'{list_id}.smi') as f:
-        for smi in f:
+        for line in f:
+            smi = line.split()[0]
             if Chem.MolFromSmiles(smi) is not None:
                 smis.append(smi)
     with open(f'{list_id}.in', 'w') as f:
         for i, smi in enumerate(smis):
-            f.write(f'{i},0,{smi}')
+            f.write(f'{i},0,{smi}\n')
     proc = subprocess.run(f"java -cp moss.jar moss.Miner -s0.1 -S0.5 -m12 -R -B {list_id}.in {list_id}.sub {list_id}.ids >> log.txt 2>&1", shell=True, text=True)
 
 if __name__ == '__main__':
     app.run(debug=True)
+    # For deployment
+    # app.run(debug=False, host='0.0.0.0', port=12345)
